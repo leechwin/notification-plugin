@@ -22,6 +22,10 @@ public class ScmState
 
     private String commit;
 
+    private String changes;
+
+    private String affectedPaths;
+
     public String getUrl ()
     {
         return url;
@@ -50,5 +54,25 @@ public class ScmState
     public void setCommit ( String commit )
     {
         this.commit = commit;
+    }
+
+    public String getChanges ()
+    {
+        return changes;
+    }
+
+    public void setChanges ( String changes )
+    {
+        this.changes = changes;
+    }
+
+    public String getAffectedPaths ()
+    {
+        return affectedPaths;
+    }
+
+    public void setAffectedPaths ( String affectedPaths )
+    {
+        this.affectedPaths = affectedPaths;
     }
 }

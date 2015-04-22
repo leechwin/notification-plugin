@@ -13,20 +13,36 @@
  */
 package com.tikal.hudson.plugins.notification;
 
+import com.tikal.hudson.plugins.notification.changes.ChangesAggregator;
 import com.tikal.hudson.plugins.notification.model.BuildState;
 import com.tikal.hudson.plugins.notification.model.JobState;
 import com.tikal.hudson.plugins.notification.model.ScmState;
+
 import hudson.EnvVars;
 import hudson.model.*;
+import hudson.model.AbstractBuild;
+import hudson.scm.ChangeLogSet;
+import hudson.scm.ChangeLogSet.Entry;
 import jenkins.model.Jenkins;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Sets;
 
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public enum Phase {
     STARTED, COMPLETED, FINALIZED;
+
+    transient List<ChangesAggregator> aggregators;
 
     @SuppressWarnings( "CastToConcreteClass" )
     public void handle(Run run, TaskListener listener) {
@@ -120,6 +136,19 @@ public enum Phase {
             scmState.setCommit( environment.get( "GIT_COMMIT" ));
         }
 
+        if ( run instanceof AbstractBuild ) {
+            Multimap<Entry, AbstractBuild> allChanges = getAllChanges( (AbstractBuild) run );
+            Iterator<Entry> iterator = allChanges.keys().iterator();
+            String msg = "", paths = "";
+            while ( iterator.hasNext() ) {
+                Entry entry = iterator.next();
+                msg += entry.getMsg() + "\n";
+                paths += entry.getAffectedPaths().toString() + "\n";
+            }
+            scmState.setChanges( msg );
+            scmState.setAffectedPaths( paths );
+        }
+
         return jobState;
     }
 
@@ -148,5 +177,56 @@ public enum Phase {
             log.append("Unable to retrieve log");
         }
         return log;
+    }
+
+    /**
+     * Returns all changes which contribute to a build.
+     *
+     * @param build
+     * @return
+     */
+    public Multimap<ChangeLogSet.Entry, AbstractBuild> getAllChanges(AbstractBuild build) {
+        Set<AbstractBuild> builds = getContributingBuilds(build);
+        Multimap<String, ChangeLogSet.Entry> changes = ArrayListMultimap.create();
+        for (AbstractBuild changedBuild : builds) {
+            ChangeLogSet<ChangeLogSet.Entry> changeSet = changedBuild.getChangeSet();
+            for (ChangeLogSet.Entry entry : changeSet) {
+                changes.put(entry.getCommitId() + entry.getMsgAnnotated() + entry.getTimestamp(), entry);
+            }
+        }
+        Multimap<ChangeLogSet.Entry, AbstractBuild> change2Build = HashMultimap.create();
+        for (String changeKey : changes.keySet()) {
+            ChangeLogSet.Entry change = changes.get(changeKey).iterator().next();
+            for (ChangeLogSet.Entry entry : changes.get(changeKey)) {
+                change2Build.put(change, entry.getParent().build);
+            }
+        }
+        return change2Build;
+    }
+
+    /**
+     * Uses all ChangesAggregators to calculate the contributing builds
+     *
+     * @return all changes which contribute to the given build
+     */
+    public Set<AbstractBuild> getContributingBuilds(AbstractBuild build) {
+        if (aggregators == null) {
+            aggregators = ImmutableList.copyOf(ChangesAggregator.all());
+        }
+        Set<AbstractBuild> builds = Sets.newHashSet();
+        builds.add(build);
+        int size = 0;
+        // Saturate the build Set
+        do {
+            size = builds.size();
+            Set<AbstractBuild> newBuilds = Sets.newHashSet();
+            for (ChangesAggregator aggregator : aggregators) {
+                for (AbstractBuild depBuild : builds) {
+                    newBuilds.addAll(aggregator.aggregateBuildsWithChanges(depBuild));
+                }
+            }
+            builds.addAll(newBuilds);
+        } while (size < builds.size());
+        return builds;
     }
 }

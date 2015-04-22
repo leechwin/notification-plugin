@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.tikalk.hudson.plugins</groupId>
     <artifactId>notification</artifactId>
-    <version>1.10-SNAPSHOT</version>
+    <version>1.9</version>
     <packaging>hpi</packaging>
     <name>Jenkins Notification plugin</name>
     <description>Sends notifications about jobs phases and status</description>
@@ -12,7 +12,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.566</version>
+        <version>1.609</version>
     </parent>
 
     <repositories>
@@ -54,7 +54,7 @@
                <plugin>
                    <groupId>org.jenkins-ci.tools</groupId>
                    <artifactId>maven-hpi-plugin</artifactId>
-                   <version>1.109</version>
+                   <version>1.112</version>
                </plugin>
 		<plugin>
 		  <artifactId>maven-release-plugin</artifactId>
@@ -115,7 +115,7 @@
         <connection>scm:git:git://github.com/jenkinsci/notification-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/notification-plugin.git</developerConnection>
         <url>http://github.com/jenkinsci/notification-plugin</url>
-      <tag>HEAD</tag>
+      <tag>notification-1.9</tag>
   </scm>
 
     <licenses>
