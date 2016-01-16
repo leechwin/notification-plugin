@@ -1,4 +1,3 @@
-/target
 /work
 .settings/
 .project
@@ -7,4 +6,4 @@
 *.iml
 go.sh
 bin/
-target/
+
